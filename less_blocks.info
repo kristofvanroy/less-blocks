@@ -1,0 +1,3 @@
+name = Less blocks
+description = Remove blocks from the block list
+core = 6.x

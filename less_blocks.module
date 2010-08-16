@@ -39,7 +39,7 @@ function less_blocks_settings_form() {
 
   $options = array();
   foreach ($block_info as $bid => $info) {
-    $options[$bid] = $info['info'];
+    $options[$bid] = $info['info'].' ['.l(t('Edit'), 'admin/build/block/configure/'.$bid).']';
   }
   asort($options);
 

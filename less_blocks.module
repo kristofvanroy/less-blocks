@@ -36,6 +36,34 @@ function less_blocks_perm() {
 function less_blocks_settings_form() {
   $form['help'] = array(
     '#value' => t('Configure which blocks should be hidden from the block list.'),
+    '#weight' => -1,
+  );
+
+  $global_options = array(
+    'system' => t('Hide all system blocks'),
+    'views' => t('Hide all view blocks'),
+    'user' => t('Hide all user blocks'),
+    'menu' => t('Hide all menu blocks'),
+  );
+
+  $form['global'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Global settings'),
+    '#collapsible' => FALSE,
+    '#weight' => 0
+  );
+  
+  $form['global']['less_blocks_global_options'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $global_options,
+    '#default_value' => variable_get('less_blocks_global_options', array()),
+  );
+
+  $form['specific'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Specific block settings'),
+    '#collapsible' => FALSE,
+    '#weight' => 1
   );
 
 	$block_info = array();
@@ -52,7 +80,7 @@ function less_blocks_settings_form() {
   foreach ($block_info as $bid => $info) {
     $options[$bid] = '';
     $form[$bid]['name'] = array('#value' => check_plain($info['info']));
-    $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'.$bid));   
+    $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'.$bid));
   }
 
   $form['less_blocks_keys'] = array(
@@ -63,11 +91,13 @@ function less_blocks_settings_form() {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save')
+    '#value' => t('Save'),
+    '#weight' => 3
   );
   $form['cancel'] = array(
     '#type' => 'markup',
 		'#value' => l(t('Cancel'), 'admin/build/block'),
+    '#weight' => 4
 	);
   
 	return $form;
@@ -75,6 +105,7 @@ function less_blocks_settings_form() {
 
 function less_blocks_settings_form_submit($form_id, $form_state) {
   variable_set('less_blocks_keys', $form_state['values']['less_blocks_keys']);
+  variable_set('less_blocks_global_options', $form_state['values']['less_blocks_global_options']);
   drupal_set_message(t('Less blocks settings are saved.'));
 }
 
@@ -83,12 +114,37 @@ function less_blocks_settings_form_submit($form_id, $form_state) {
  */
 function less_blocks_form_alter(&$form, &$form_state, $form_id) {
 	if ($form_id === 'block_admin_display_form') {
+
+    $global_options = variable_get('less_blocks_global_options', array());
+
+    foreach ($form as $key => $value) {
+
+      // System blocks
+      if ($global_options['system'] && preg_match("/^system_[0-9\.\-]/", $key)) {
+        unset($form[$key]);
+      }
+      // User blocks
+      if ($global_options['user'] && preg_match("/^user_[0-9\.\-]/", $key)) {
+        unset($form[$key]);
+      }
+      // Views blocks
+      if ($global_options['views'] && preg_match("/^views_[a-zA-Z0-9_]/", $key)) {
+        unset($form[$key]);
+      }
+      // Menu blocks
+      if ($global_options['menu'] && preg_match("/^menu_[a-zA-Z0-9_]/", $key)) {
+        unset($form[$key]);
+      }
+      
+    }
+
+    // Specific keys
 		$keys = variable_get('less_blocks_keys', array());
 		if (count($keys)) {
 			foreach ($keys as $key) {
-				unset($form[$key]);
+        unset($form[$key]);
 			}
-		}		
+		}
 	}
 }
 
@@ -121,7 +177,8 @@ function theme_less_blocks_settings_form($form) {
   $header[] = array('data' => t('Actions'));
 
   $output = drupal_render($form['help']);
-  $output .= theme('table', $header, $rows);
+  $form['specific']['#children'] = theme('table', $header, $rows);
+  //$output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
 }

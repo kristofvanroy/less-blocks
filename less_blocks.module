@@ -6,16 +6,16 @@
 function less_blocks_menu() {
 
   $items['admin/settings/less-blocks'] = array(
-    'title' => 'Less blocks settings',
+    'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
-		'page arguments' => array('less_blocks_settings_form'),
+	'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/build/block/less-blocks'] = array(
-    'title' => 'Less blocks settings',
+    'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
- 		'page arguments' => array('less_blocks_settings_form'),
+ 	'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_LOCAL_TASK,
   );
@@ -48,7 +48,7 @@ function less_blocks_settings_form() {
 
   $form['global'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Global settings'),
+    '#title' => t('Global block settings'),
     '#collapsible' => FALSE,
     '#weight' => 0
   );
@@ -61,7 +61,7 @@ function less_blocks_settings_form() {
 
   $form['specific'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Specific block settings'),
+    '#title' => t('Per block settings'),
     '#collapsible' => FALSE,
     '#weight' => 1
   );
@@ -71,15 +71,22 @@ function less_blocks_settings_form() {
     $module_blocks = module_invoke($module, 'block', 'list');
     if ($module_blocks) {
       foreach ($module_blocks as $delta => $info) {
+      	$info['module'] = $module;
         $block_info["{$module}_{$delta}"] = $info;
       }
     }
   }
-
+	$usability_options = variable_get('less_blocks_usability_options', array());
   $options = array();
   foreach ($block_info as $bid => $info) {
     $options[$bid] = '';
-    $form[$bid]['name'] = array('#value' => check_plain($info['info']));
+    if ($usability_options[$info['module']]) {
+    	$name = _less_blocks_sanitize_block_name($info['info'], $info['module']);
+    }
+    else {
+    	$name = check_plain($info['info']);
+    }
+    $form[$bid]['name'] = array('#value' => $name);
     $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'.$bid));
   }
 
@@ -87,6 +94,26 @@ function less_blocks_settings_form() {
     '#type' => 'checkboxes',
     '#options' => $options,
     '#default_value' => variable_get('less_blocks_keys', array()),
+  );
+  
+  $usability_options = array(
+    'views' => t('Give views blocks a friendly name'),
+    'menu' => t('Give menu blocks a friendly name'),
+    'group' => t('Group the blocks by module'),
+  );
+    
+ 	$form['usability'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Usability settings'),
+    '#description' => t('With these settings you can make it easier to use the block interface.'),
+    '#collapsible' => FALSE,
+    '#weight' => 3
+  );
+   
+  $form['usability']['less_blocks_usability_options'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $usability_options,
+    '#default_value' => variable_get('less_blocks_usability_options', array()),
   );
 
   $form['submit'] = array(
@@ -106,6 +133,7 @@ function less_blocks_settings_form() {
 function less_blocks_settings_form_submit($form_id, $form_state) {
   variable_set('less_blocks_keys', $form_state['values']['less_blocks_keys']);
   variable_set('less_blocks_global_options', $form_state['values']['less_blocks_global_options']);
+  variable_set('less_blocks_usability_options', $form_state['values']['less_blocks_usability_options']);  
   drupal_set_message(t('Less blocks settings are saved.'));
 }
 
@@ -114,38 +142,38 @@ function less_blocks_settings_form_submit($form_id, $form_state) {
  */
 function less_blocks_form_alter(&$form, &$form_state, $form_id) {
 	if ($form_id === 'block_admin_display_form') {
-
-    $global_options = variable_get('less_blocks_global_options', array());
-
-    foreach ($form as $key => $value) {
-
-      // System blocks
-      if ($global_options['system'] && preg_match("/^system_[0-9\.\-]/", $key)) {
-        unset($form[$key]);
-      }
-      // User blocks
-      if ($global_options['user'] && preg_match("/^user_[0-9\.\-]/", $key)) {
-        unset($form[$key]);
-      }
-      // Views blocks
-      if ($global_options['views'] && preg_match("/^views_[a-zA-Z0-9_]/", $key)) {
-        unset($form[$key]);
-      }
-      // Menu blocks
-      if ($global_options['menu'] && preg_match("/^menu_[a-zA-Z0-9_]/", $key)) {
-        unset($form[$key]);
-      }
-      
-    }
-
-    // Specific keys
+	
+		// Specific keys
 		$keys = variable_get('less_blocks_keys', array());
-		if (count($keys)) {
-			foreach ($keys as $key) {
-        unset($form[$key]);
+			if (count($keys)) {
+				foreach ($keys as $key) {
+	        unset($form[$key]);
+				}
 			}
 		}
-	}
+	
+		$global_options = variable_get('less_blocks_global_options', array());
+		$usability_options = variable_get('less_blocks_usability_options', array());
+
+    foreach ($form as $key => $value) {  
+
+			if (is_array($value) && isset($value['module'])) {
+				
+				$module = $value['module']['#value'];
+							
+				if ($global_options[$module]) {
+					unset($form[$key]);
+				}
+				
+				if ($usability_options[$module]) {
+					$form[$key]['info']['#value'] = _less_blocks_sanitize_block_name($value['info']['#value'], $module);
+				} 
+				
+      }
+	  if ($usability_options['group']) {
+	    ksort($form);
+	  }
+  }    
 }
 
 /**
@@ -181,4 +209,16 @@ function theme_less_blocks_settings_form($form) {
   //$output .= theme('table', $header, $rows);
   $output .= drupal_render($form);
   return $output;
+}
+
+function _less_blocks_sanitize_block_name($value, $type) {
+	switch ($type) {
+		case 'views':
+			return t('View').' '. strstr($value,':');
+		break;
+		case 'menu':
+			return t('Menu').' : '. $value;
+		break;
+		default: return $value;
+	}
 }

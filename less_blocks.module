@@ -1,21 +1,21 @@
 <?php
 
 /**
- * Implementation of hook_menu()
+ * Implementation of hook_menu().
  */
 function less_blocks_menu() {
 
   $items['admin/settings/less-blocks'] = array(
     'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
-	'page arguments' => array('less_blocks_settings_form'),
+		'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/build/block/less-blocks'] = array(
     'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
- 	'page arguments' => array('less_blocks_settings_form'),
+ 		'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_LOCAL_TASK,
   );
@@ -185,6 +185,9 @@ function less_blocks_theme() {
   );
 }
 
+/**
+ * Theme callback for the settings form.
+ */
 function theme_less_blocks_settings_form($form) {
   $rows = array();
 
@@ -211,6 +214,9 @@ function theme_less_blocks_settings_form($form) {
   return $output;
 }
 
+/**
+ * This function sanitizes the block names.
+ */
 function _less_blocks_sanitize_block_name($value, $type) {
 	switch ($type) {
 		case 'views':

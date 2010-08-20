@@ -8,14 +8,14 @@ function less_blocks_menu() {
   $items['admin/settings/less-blocks'] = array(
     'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
-		'page arguments' => array('less_blocks_settings_form'),
+    'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/build/block/less-blocks'] = array(
     'title' => 'Less blocks',
     'page callback' => 'drupal_get_form',
- 		'page arguments' => array('less_blocks_settings_form'),
+    'page arguments' => array('less_blocks_settings_form'),
     'access arguments' => array('administer less blocks'),
     'type' => MENU_LOCAL_TASK,
   );
@@ -27,7 +27,7 @@ function less_blocks_menu() {
  * Implementation of hook_perm().
  */
 function less_blocks_perm() {
-	return array('administer less blocks');
+  return array('administer less blocks');
 }
 
 /**
@@ -52,7 +52,7 @@ function less_blocks_settings_form() {
     '#collapsible' => FALSE,
     '#weight' => 0
   );
-  
+
   $form['global']['less_blocks_global_options'] = array(
     '#type' => 'checkboxes',
     '#options' => $global_options,
@@ -66,25 +66,25 @@ function less_blocks_settings_form() {
     '#weight' => 1
   );
 
-	$block_info = array();
+  $block_info = array();
   foreach (module_implements('block') as $module) {
     $module_blocks = module_invoke($module, 'block', 'list');
     if ($module_blocks) {
       foreach ($module_blocks as $delta => $info) {
-      	$info['module'] = $module;
+        $info['module'] = $module;
         $block_info["{$module}_{$delta}"] = $info;
       }
     }
   }
-	$usability_options = variable_get('less_blocks_usability_options', array());
+  $usability_options = variable_get('less_blocks_usability_options', array());
   $options = array();
   foreach ($block_info as $bid => $info) {
     $options[$bid] = '';
-    if ($usability_options[$info['module']]) {
-    	$name = _less_blocks_sanitize_block_name($info['info'], $info['module']);
+    if ($usability_options['friendly']) {
+      $name = _less_blocks_sanitize_block_name($info['info'], $info['module']);
     }
     else {
-    	$name = check_plain($info['info']);
+      $name = check_plain($info['info']);
     }
     $form[$bid]['name'] = array('#value' => $name);
     $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'.$bid));
@@ -95,21 +95,20 @@ function less_blocks_settings_form() {
     '#options' => $options,
     '#default_value' => variable_get('less_blocks_keys', array()),
   );
-  
+
   $usability_options = array(
-    'views' => t('Give views blocks a friendly name'),
-    'menu' => t('Give menu blocks a friendly name'),
+    'friendly' => t('Give blocks a friendly name'),
     'group' => t('Group the blocks by module'),
   );
-    
- 	$form['usability'] = array(
+
+  $form['usability'] = array(
     '#type' => 'fieldset',
     '#title' => t('Usability settings'),
     '#description' => t('With these settings you can make it easier to use the block interface.'),
     '#collapsible' => FALSE,
     '#weight' => 3
   );
-   
+
   $form['usability']['less_blocks_usability_options'] = array(
     '#type' => 'checkboxes',
     '#options' => $usability_options,
@@ -119,21 +118,21 @@ function less_blocks_settings_form() {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save'),
-    '#weight' => 3
+    '#weight' => 4
   );
   $form['cancel'] = array(
     '#type' => 'markup',
-		'#value' => l(t('Cancel'), 'admin/build/block'),
-    '#weight' => 4
-	);
-  
-	return $form;
+    '#value' => l(t('Cancel'), 'admin/build/block'),
+    '#weight' => 5
+  );
+
+  return $form;
 }
 
 function less_blocks_settings_form_submit($form_id, $form_state) {
   variable_set('less_blocks_keys', $form_state['values']['less_blocks_keys']);
   variable_set('less_blocks_global_options', $form_state['values']['less_blocks_global_options']);
-  variable_set('less_blocks_usability_options', $form_state['values']['less_blocks_usability_options']);  
+  variable_set('less_blocks_usability_options', $form_state['values']['less_blocks_usability_options']);
   drupal_set_message(t('Less blocks settings are saved.'));
 }
 
@@ -141,39 +140,39 @@ function less_blocks_settings_form_submit($form_id, $form_state) {
  * Implementation of hook_form_alter()
  */
 function less_blocks_form_alter(&$form, &$form_state, $form_id) {
-	if ($form_id === 'block_admin_display_form') {
-	
-		// Specific keys
-		$keys = variable_get('less_blocks_keys', array());
-			if (count($keys)) {
-				foreach ($keys as $key) {
-	        unset($form[$key]);
-				}
-			}
-		}
-	
-		$global_options = variable_get('less_blocks_global_options', array());
-		$usability_options = variable_get('less_blocks_usability_options', array());
+  if ($form_id === 'block_admin_display_form') {
 
-    foreach ($form as $key => $value) {  
-
-			if (is_array($value) && isset($value['module'])) {
-				
-				$module = $value['module']['#value'];
-							
-				if ($global_options[$module]) {
-					unset($form[$key]);
-				}
-				
-				if ($usability_options[$module]) {
-					$form[$key]['info']['#value'] = _less_blocks_sanitize_block_name($value['info']['#value'], $module);
-				} 
-				
+    // Specific keys
+    $keys = variable_get('less_blocks_keys', array());
+    if (count($keys)) {
+      foreach ($keys as $key) {
+        unset($form[$key]);
       }
-	  if ($usability_options['group']) {
-	    ksort($form);
-	  }
-  }    
+    }
+  }
+
+  $global_options = variable_get('less_blocks_global_options', array());
+  $usability_options = variable_get('less_blocks_usability_options', array());
+
+  foreach ($form as $key => $value) {
+
+    if (is_array($value) && isset($value['module'])) {
+
+      $module = $value['module']['#value'];
+
+      if ($global_options[$module]) {
+        unset($form[$key]);
+      }
+
+      if ($usability_options['friendly']) {
+        $form[$key]['info']['#value'] = _less_blocks_sanitize_block_name($value['info']['#value'], $module);
+      }
+
+    }
+    if ($usability_options['group']) {
+      ksort($form);
+    }
+  }
 }
 
 /**
@@ -199,7 +198,7 @@ function theme_less_blocks_settings_form($form) {
       $row[] = drupal_render($form[$key]['name']);
       $row[] = drupal_render($form[$key]['edit']);
       $rows[] = $row;
-    }    
+    }
   }
 
   $header = array();
@@ -218,13 +217,10 @@ function theme_less_blocks_settings_form($form) {
  * This function sanitizes the block names.
  */
 function _less_blocks_sanitize_block_name($value, $type) {
-	switch ($type) {
-		case 'views':
-			return t('View').' '. strstr($value,':');
-		break;
-		case 'menu':
-			return t('Menu').' : '. $value;
-		break;
-		default: return $value;
-	}
+  switch ($type) {
+    case 'views':
+      return t('View').' '. strstr($value,':');
+      break;    
+    default: return ucfirst(check_plain($type)) .' : '. $value;
+  }
 }

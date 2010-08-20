@@ -87,7 +87,7 @@ function less_blocks_settings_form() {
       $name = check_plain($info['info']);
     }
     $form[$bid]['name'] = array('#value' => $name);
-    $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'.$bid));
+    $form[$bid]['edit'] = array('#value' => l(t('Edit'), 'admin/build/block/configure/'. $bid));
   }
 
   $form['less_blocks_keys'] = array(
@@ -180,7 +180,9 @@ function less_blocks_form_alter(&$form, &$form_state, $form_id) {
  */
 function less_blocks_theme() {
   return array(
-    'less_blocks_settings_form' => array('arguments' => array('form' => NULL),),
+    'less_blocks_settings_form' => array(
+      'arguments' => array('form' => NULL)
+     ),
   );
 }
 
@@ -190,7 +192,7 @@ function less_blocks_theme() {
 function theme_less_blocks_settings_form($form) {
   $rows = array();
 
-  foreach(element_children($form) as $key) {
+  foreach (element_children($form) as $key) {
     $row = array();
     if (isset($form[$key]['name'])) {
       $checkbox = drupal_render($form['less_blocks_keys'][$key]);
@@ -219,7 +221,7 @@ function theme_less_blocks_settings_form($form) {
 function _less_blocks_sanitize_block_name($value, $type) {
   switch ($type) {
     case 'views':
-      return t('View').' '. strstr($value,':');
+      return t('View') .' '. strstr($value, ':');
       break;    
     default: return ucfirst(check_plain($type)) .' : '. $value;
   }

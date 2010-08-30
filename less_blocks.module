@@ -149,28 +149,29 @@ function less_blocks_form_alter(&$form, &$form_state, $form_id) {
         unset($form[$key]);
       }
     }
-  }
+  
 
-  $global_options = variable_get('less_blocks_global_options', array());
-  $usability_options = variable_get('less_blocks_usability_options', array());
+    $global_options = variable_get('less_blocks_global_options', array());
+    $usability_options = variable_get('less_blocks_usability_options', array());
 
-  foreach ($form as $key => $value) {
+    foreach ($form as $key => $value) {
 
-    if (is_array($value) && isset($value['module'])) {
+      if (is_array($value) && isset($value['module'])) {
 
-      $module = $value['module']['#value'];
+        $module = $value['module']['#value'];
 
-      if ($global_options[$module]) {
-        unset($form[$key]);
+        if ($global_options[$module]) {
+          unset($form[$key]);
+        }
+
+        if ($usability_options['friendly']) {
+          $form[$key]['info']['#value'] = _less_blocks_sanitize_block_name($value['info']['#value'], $module);
+        }
+
       }
-
-      if ($usability_options['friendly']) {
-        $form[$key]['info']['#value'] = _less_blocks_sanitize_block_name($value['info']['#value'], $module);
+      if ($usability_options['group']) {
+        ksort($form);
       }
-
-    }
-    if ($usability_options['group']) {
-      ksort($form);
     }
   }
 }
